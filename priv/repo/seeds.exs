@@ -2,10 +2,6 @@
 #
 #     mix run priv/repo/seeds.exs
 #
-# Inside the script, you can read and write to any of your
-# repositories directly:
-#
-#     TaskPipeline.Repo.insert!(%TaskPipeline.SomeSchema{})
-#
-# We recommend using the bang functions (`insert!`, `update!`
-# and so on) as they will fail if something goes wrong.
+
+TaskPipeline.Seeds.create_tasks()
+TaskPipeline.Seeds.create_runs()
