@@ -7,6 +7,32 @@
 # General application configuration
 import Config
 
+# The queue numbers are tailored to our development database and connection
+# pool size. In a production setting, these would be scaled prortionally to the
+# server capacity. Keeping numbers low will be good for development as we'll be
+# able to observe the behaviour more easily.
+# We're using an aggressive Lifeline rescue_after to help debugging and because
+# we know our "processing" only takes seconds.
+
+config :task_pipeline, Oban,
+  engine: Oban.Engines.Basic,
+  plugins: [
+    {Oban.Plugins.Pruner, max_age: 600},
+    {Oban.Plugins.Lifeline, rescue_after: :timer.minutes(1)}
+  ],
+  notifier: Oban.Notifiers.Postgres,
+  repo: TaskPipeline.Repo,
+  queues: [
+    default: 1,
+    critical: 4,
+    high: 3,
+    normal: 2,
+    low: 1
+  ]
+
+config :task_pipeline, TaskPipeline.Processing.Handler, processing_enabled: true
+config :task_pipeline, :handler_failure_rate, 0.2
+
 config :task_pipeline,
   ecto_repos: [TaskPipeline.Repo],
   generators: [timestamp_type: :utc_datetime]

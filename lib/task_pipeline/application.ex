@@ -11,6 +11,7 @@ defmodule TaskPipeline.Application do
       TaskPipelineWeb.Telemetry,
       TaskPipeline.Repo,
       {DNSCluster, query: Application.get_env(:task_pipeline, :dns_cluster_query) || :ignore},
+      {Oban, Application.fetch_env!(:task_pipeline, Oban)},
       {Phoenix.PubSub, name: TaskPipeline.PubSub},
       # Start a worker by calling: TaskPipeline.Worker.start_link(arg)
       # {TaskPipeline.Worker, arg},

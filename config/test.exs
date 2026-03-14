@@ -1,4 +1,7 @@
 import Config
+config :task_pipeline, Oban, testing: :manual
+config :task_pipeline, :handler_failure_rate, 0.0
+config :task_pipeline, TaskPipeline.Processing.Handler, processing_enabled: false
 
 # Configure your database
 #
