@@ -4,3 +4,6 @@ PORT = "4074"
 [tools]
 elixir = "1.19.5-otp-28"
 erlang = "28.4.1"
+
+[tasks.oban-dash]
+run = "docker run -d --net host -e 'DATABASE_URL=postgres://postgres@localhost/task_pipeline_dev' ghcr.io/oban-bg/oban-dash"
