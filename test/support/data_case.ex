@@ -55,4 +55,13 @@ defmodule TaskPipeline.DataCase do
       end)
     end)
   end
+
+  def put_handler_failure_rate(rate) do
+    previous = Application.get_env(:task_pipeline, :handler_failure_rate)
+    Application.put_env(:task_pipeline, :handler_failure_rate, rate)
+
+    ExUnit.Callbacks.on_exit(fn ->
+      Application.put_env(:task_pipeline, :handler_failure_rate, previous)
+    end)
+  end
 end
