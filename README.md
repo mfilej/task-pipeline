@@ -2,17 +2,34 @@
 
 To start your Phoenix server:
 
-* Run `mix setup` to install and setup dependencies
+* Install runtimes using [mise][]: `mise install`.
+* Run `mix setup` to install deps and bootstrap the database.
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+## Oban web dashboard
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+Run it via docker with `mise run oban-dash`.
 
-## Learn more
+## Mix Tasks
 
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
+Use these mix tasks to generate and enqueue Tasks:
+
+* by creating a database record: `mix task_pipeline.enqueue_random`
+* by hitting the create endpoint: `mix task_pipeline.create_via_api`
+
+You can override the generated task fields:
+
+```sh
+PORT=4074 mix task_pipeline.create_via_api \
+  --title "Smoke test" \
+  --type import \
+  --priority high \
+  --payload '{"source":"mix_task"}' \
+```
+
+Allowed enum values:
+
+* `--type`: `import`, `export`, `report`, `cleanup`
+* `--priority`: `low`, `normal`, `high`, `critical`
+
+[mise]: https://mise.jdx.dev/
