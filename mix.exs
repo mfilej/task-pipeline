@@ -39,6 +39,8 @@ defmodule TaskPipeline.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:flop, "~> 0.26.3"},
+      {:flop_rest, "~> 0.6.1"},
       {:oban, "~> 2.0"},
       {:phoenix, "~> 1.8.4"},
       {:phoenix_ecto, "~> 4.5"},

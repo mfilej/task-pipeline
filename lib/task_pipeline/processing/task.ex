@@ -3,8 +3,22 @@ defmodule TaskPipeline.Processing.Task do
   import Ecto.Changeset
 
   @types [import: 0, export: 1, report: 2, cleanup: 3]
-  @priorities [:low, :normal, :high, :critical]
+  @priorities [critical: 0, high: 1, normal: 2, low: 3]
   @statuses [:queued, :processing, :completed, :failed]
+
+  @derive {
+    Flop.Schema,
+    filterable: [:status, :type, :priority],
+    sortable: [:priority, :inserted_at, :id],
+    default_order: %{
+      order_by: [:priority, :inserted_at, :id],
+      order_directions: [:asc, :desc, :desc]
+    },
+    default_limit: 3,
+    max_limit: 100,
+    pagination_types: [:first],
+    default_pagination_type: :first
+  }
 
   schema "tasks" do
     field :title, :string
@@ -28,6 +42,6 @@ defmodule TaskPipeline.Processing.Task do
   end
 
   def list_types, do: @types |> Keyword.keys()
-  def list_priorities, do: @priorities
+  def list_priorities, do: @priorities |> Keyword.keys()
   def list_statuses, do: @statuses
 end

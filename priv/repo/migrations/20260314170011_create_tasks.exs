@@ -5,7 +5,7 @@ defmodule TaskPipeline.Repo.Migrations.CreateTasks do
     create table(:tasks) do
       add :title, :string, null: false
       add :type, :integer, null: false
-      add :priority, :task_priority, null: false
+      add :priority, :integer, null: false
       add :payload, :map, null: false
       add :max_attempts, :integer, default: 3, null: false
       add :status, :task_status, null: false

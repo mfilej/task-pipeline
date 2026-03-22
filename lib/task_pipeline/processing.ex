@@ -8,6 +8,10 @@ defmodule TaskPipeline.Processing do
   alias TaskPipeline.Repo
   alias TaskPipeline.Workers.TaskWorker
 
+  def list_tasks(params) do
+    Flop.validate_and_run(Task, params, for: Task)
+  end
+
   # Task is created in queued state, job is inserted
   def create_task(attrs) do
     changeset = Task.changeset(%Task{}, attrs)

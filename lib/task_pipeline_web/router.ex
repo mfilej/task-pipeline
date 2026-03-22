@@ -10,7 +10,9 @@ defmodule TaskPipelineWeb.Router do
   scope "/api", TaskPipelineWeb do
     pipe_through :api
 
+    get "/tasks", TaskController, :index
     post "/tasks", TaskController, :create
+    get "/tasks/:id", TaskController, :show
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
