@@ -5,6 +5,8 @@ defmodule TaskPipelineWeb.Router do
     plug :accepts, ["json"]
   end
 
+  get "/", TaskPipelineWeb.PageController, :index
+
   scope "/api", TaskPipelineWeb do
     pipe_through :api
 
