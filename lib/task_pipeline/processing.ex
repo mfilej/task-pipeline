@@ -12,6 +12,12 @@ defmodule TaskPipeline.Processing do
     Flop.validate_and_run(Task, params, for: Task)
   end
 
+  def get_task!(id) do
+    Task
+    |> Repo.get!(id)
+    |> Repo.preload(runs: task_runs_query())
+  end
+
   # Task is created in queued state, job is inserted
   def create_task(attrs) do
     changeset = Task.changeset(%Task{}, attrs)
@@ -96,5 +102,9 @@ defmodule TaskPipeline.Processing do
 
   defp now do
     DateTime.utc_now() |> DateTime.truncate(:second)
+  end
+
+  defp task_runs_query do
+    from(r in Run, order_by: [asc: r.attempt])
   end
 end

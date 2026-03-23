@@ -8,6 +8,28 @@ defmodule TaskPipeline.ProcessingTest do
   alias TaskPipeline.Processing.Task
   alias TaskPipeline.Workers.TaskWorker
 
+  describe "get_task!/1" do
+    test "returns a task with preloaded runs ordered by attempt" do
+      task =
+        Repo.insert!(%Task{
+          title: "Fetch me",
+          type: :import,
+          priority: :normal,
+          payload: %{},
+          max_attempts: 3,
+          status: :completed
+        })
+
+      Repo.insert!(%Run{task_id: task.id, attempt: 2, success: true, message: "second"})
+      Repo.insert!(%Run{task_id: task.id, attempt: 1, success: false, message: "first"})
+
+      fetched = Processing.get_task!(task.id)
+      assert fetched.id == task.id
+      assert [run1, run2] = fetched.runs
+      assert run1.attempt == 1
+      assert run2.attempt == 2
+    end
+
   test "create_task/1 creates a queued task and enqueues its job" do
     attrs = %{
       title: "Process me",

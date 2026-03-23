@@ -1,5 +1,5 @@
 defmodule TaskPipelineWeb.TaskJSON do
-  alias TaskPipeline.Processing.Task
+  alias TaskPipeline.Processing.{Task, Run}
 
   use TaskPipelineWeb, :verified_routes
 
@@ -11,6 +11,10 @@ defmodule TaskPipelineWeb.TaskJSON do
   end
 
   def show(%{task: task}) do
+    %{data: task_detail_data(task)}
+  end
+
+  def create(%{task: task}) do
     %{data: task_data(task)}
   end
 
@@ -28,6 +32,20 @@ defmodule TaskPipelineWeb.TaskJSON do
       :updated_at
     ])
     |> Map.put(:href, ~p"/api/tasks/#{task}")
+  end
+
+  defp task_detail_data(%Task{} = task) do
+    # Each task has a small, bounded number of runs (capped by max_attempts),
+    # so we blindly include them all.
+    runs = Enum.map(task.runs, &run_data/1)
+
+    task
+    |> task_data()
+    |> Map.put(:runs, runs)
+  end
+
+  defp run_data(%Run{} = run) do
+    Map.take(run, [:attempt, :success, :message, :inserted_at])
   end
 
   defp pagination_meta(%Flop.Meta{} = meta) do

@@ -35,6 +35,17 @@ defmodule TaskPipelineWeb.TaskControllerTest do
     Repo.insert!(struct(Task, Map.merge(defaults, Map.new(attrs))))
   end
 
+  defp insert_run!(task, attrs) do
+    alias TaskPipeline.Processing.Run
+
+    Repo.insert!(%Run{
+      task_id: task.id,
+      attempt: Keyword.fetch!(attrs, :attempt),
+      success: Keyword.fetch!(attrs, :success),
+      message: Keyword.fetch!(attrs, :message)
+    })
+  end
+
   describe "index tasks" do
     test "returns empty list when no tasks exist", %{conn: conn} do
       conn = get(conn, ~p"/api/tasks")
@@ -147,6 +158,47 @@ defmodule TaskPipelineWeb.TaskControllerTest do
       meta = json_response(conn, 200)["meta"]
       assert is_boolean(meta["has_next_page"])
       assert is_integer(meta["page_size"])
+    end
+  end
+
+  describe "show task" do
+    test "returns the task with its runs", %{conn: conn} do
+      task = insert_task!(title: "detail me", status: :completed)
+      insert_run!(task, attempt: 1, success: false, message: "boom")
+      insert_run!(task, attempt: 2, success: true, message: "ok")
+
+      conn = get(conn, ~p"/api/tasks/#{task.id}")
+      body = json_response(conn, 200)["data"]
+
+      assert body["id"] == task.id
+      assert body["title"] == "detail me"
+      assert body["status"] == "completed"
+      assert body["href"] == "/api/tasks/#{task.id}"
+
+      assert [run1, run2] = body["runs"]
+      assert run1["attempt"] == 1
+      assert run1["success"] == false
+      assert run1["message"] == "boom"
+      assert run2["attempt"] == 2
+      assert run2["success"] == true
+      assert run2["message"] == "ok"
+    end
+
+    test "returns runs ordered by attempt ascending", %{conn: conn} do
+      task = insert_task!()
+      insert_run!(task, attempt: 3, success: true, message: "third")
+      insert_run!(task, attempt: 1, success: false, message: "first")
+      insert_run!(task, attempt: 2, success: false, message: "second")
+
+      conn = get(conn, ~p"/api/tasks/#{task.id}")
+      attempts = json_response(conn, 200)["data"]["runs"] |> Enum.map(& &1["attempt"])
+      assert attempts == [1, 2, 3]
+    end
+
+    test "returns 404 for a non-existent task", %{conn: conn} do
+      assert_error_sent 404, fn ->
+        get(conn, ~p"/api/tasks/999999")
+      end
     end
   end
 

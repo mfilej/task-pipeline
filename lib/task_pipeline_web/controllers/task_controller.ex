@@ -17,12 +17,17 @@ defmodule TaskPipelineWeb.TaskController do
     end
   end
 
+  def show(conn, %{"id" => id}) do
+    task = Processing.get_task!(id)
+    render(conn, :show, task: task)
+  end
+
   def create(conn, %{"task" => task_params}) do
     case Processing.create_task(task_params) do
       {:ok, %{task: %Task{} = task}} ->
         conn
         |> put_status(:created)
-        |> render(:show, task: task)
+        |> render(:create, task: task)
 
       {:error, :task, changeset, _changes_so_far} ->
         {:error, changeset}
