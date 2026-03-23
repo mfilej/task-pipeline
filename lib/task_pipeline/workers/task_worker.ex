@@ -18,7 +18,7 @@ defmodule TaskPipeline.Workers.TaskWorker do
   @impl Oban.Worker
   def perform(%Oban.Job{args: %{"task_id" => task_id}} = job) do
     case Processing.claim_task(%Task{id: task_id}) do
-      {:ok, task} ->
+      {:ok, %{task: task}} ->
         meta = Map.take(job, [:attempt, :max_attempts])
 
         case Handler.run(task) do

@@ -7,22 +7,25 @@ defmodule TaskPipeline.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      TaskPipelineWeb.Telemetry,
-      TaskPipeline.Repo,
-      {DNSCluster, query: Application.get_env(:task_pipeline, :dns_cluster_query) || :ignore},
-      {Oban, Application.fetch_env!(:task_pipeline, Oban)},
-      {Phoenix.PubSub, name: TaskPipeline.PubSub},
-      # Start a worker by calling: TaskPipeline.Worker.start_link(arg)
-      # {TaskPipeline.Worker, arg},
-      # Start to serve requests, typically the last entry
-      TaskPipelineWeb.Endpoint
-    ]
-
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: TaskPipeline.Supervisor]
-    Supervisor.start_link(children, opts)
+    Supervisor.start_link(child_specs(), opts)
+  end
+
+  @doc false
+  def child_specs do
+    # NOTE: Runtime.Supervisor must start before Oban so event subscribers are
+    # ready before jobs publish updates.
+    [
+      TaskPipelineWeb.Telemetry,
+      TaskPipeline.Repo,
+      {DNSCluster, query: Application.get_env(:task_pipeline, :dns_cluster_query) || :ignore},
+      {Phoenix.PubSub, name: TaskPipeline.PubSub},
+      TaskPipeline.Runtime.Supervisor,
+      {Oban, Application.fetch_env!(:task_pipeline, Oban)},
+      TaskPipelineWeb.Endpoint
+    ]
   end
 
   # Tell Phoenix to update the endpoint configuration

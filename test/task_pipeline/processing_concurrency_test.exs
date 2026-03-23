@@ -39,7 +39,7 @@ defmodule TaskPipeline.ProcessingConcurrencyTest do
 
     results = [Elixir.Task.await(first), Elixir.Task.await(second)]
 
-    assert Enum.count(results, &match?({:ok, %Task{status: :processing}}, &1)) == 1
+    assert Enum.count(results, &match?({:ok, %{task: %Task{status: :processing}}}, &1)) == 1
     assert Enum.count(results, &match?({:error, :not_claimable}, &1)) == 1
     assert Repo.get!(Task, task.id).status == :processing
   end

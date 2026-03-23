@@ -3,11 +3,17 @@ defmodule TaskPipelineWeb.TaskController do
 
   alias TaskPipeline.Processing
   alias TaskPipeline.Processing.Task
+  alias TaskPipeline.Runtime
 
   action_fallback TaskPipelineWeb.FallbackController
 
+  def metrics(conn, _params) do
+    {:ok, metrics} = Runtime.Metrics.snapshot()
+    render(conn, :metrics, metrics: metrics)
+  end
+
   def summary(conn, _params) do
-    summary = Processing.tasks_summary()
+    {:ok, summary} = Runtime.Summary.summary()
     render(conn, :summary, summary: summary)
   end
 

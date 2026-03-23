@@ -3,6 +3,10 @@ defmodule TaskPipelineWeb.TaskJSON do
 
   use TaskPipelineWeb, :verified_routes
 
+  def metrics(%{metrics: metrics}) do
+    %{data: metrics}
+  end
+
   def summary(%{summary: summary}) do
     %{data: summary}
   end

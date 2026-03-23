@@ -2,6 +2,7 @@ defmodule TaskPipeline.Processing do
   import Ecto.Query, warn: false
 
   alias Ecto.Multi
+  alias TaskPipeline.Processing.Events
   alias TaskPipeline.Processing.Run
   alias TaskPipeline.Processing.Result
   alias TaskPipeline.Processing.Task
@@ -45,6 +46,7 @@ defmodule TaskPipeline.Processing do
       )
     end)
     |> Repo.transaction()
+    |> publish_transition(&Events.task_created/1)
   end
 
   # Transition: queued -> processing
@@ -52,18 +54,17 @@ defmodule TaskPipeline.Processing do
     task_query(task_id, :queued)
     |> Repo.update_all(set: [status: :processing, updated_at: now()])
     |> handle_guarded_transition(:not_claimable)
+    |> wrap_task_result()
+    |> publish_transition(&Events.task_claimed/1)
   end
 
   # Transition: processing -> completed
   def task_completed(%Task{id: task_id}, result, %{attempt: attempt}) do
     %Result{message: message} = result
+    attrs = %{message: message, attempt: attempt}
 
-    task_transition_with_run(
-      task_id,
-      %{message: message, attempt: attempt},
-      true,
-      &complete_task/2
-    )
+    task_transition_with_run(task_id, attrs, true, &complete_task/2)
+    |> publish_transition(&Events.task_completed(Map.put(&1, :result, result)))
   end
 
   # Transition: processing -> queued|failed (depending on attempts left)
@@ -74,8 +75,10 @@ defmodule TaskPipeline.Processing do
 
     if attempt < max_attempts do
       task_transition_with_run(task_id, attrs, false, &retry_task/2)
+      |> publish_transition(&Events.task_retried(Map.merge(&1, %{result: result, meta: meta})))
     else
       task_transition_with_run(task_id, attrs, false, &fail_task/2)
+      |> publish_transition(&Events.task_failed(Map.merge(&1, %{result: result, meta: meta})))
     end
   end
 
@@ -84,6 +87,23 @@ defmodule TaskPipeline.Processing do
     |> Multi.run(:task, fn repo, _changes -> transition_fun.(repo, task_id) end)
     |> Multi.insert(:run, fn %{task: task} -> Run.changeset(%Run{}, task.id, success, attrs) end)
     |> Repo.transaction()
+  end
+
+  defp publish_transition({:ok, payload} = result, publisher) do
+    :ok = publisher.(payload)
+    result
+  end
+
+  defp publish_transition(result, _publisher) do
+    result
+  end
+
+  defp wrap_task_result({:ok, %Task{} = task}) do
+    {:ok, %{task: task}}
+  end
+
+  defp wrap_task_result(result) do
+    result
   end
 
   defp complete_task(repo, task_id) do

@@ -103,7 +103,8 @@ defmodule TaskPipeline.ProcessingTest do
         status: :queued
       })
 
-    assert {:ok, _claimed_task} = Processing.claim_task(task)
+    assert {:ok, %{task: claimed_task}} = Processing.claim_task(task)
+    assert claimed_task.status == :processing
 
     persisted_task = Repo.get!(Task, task.id)
 

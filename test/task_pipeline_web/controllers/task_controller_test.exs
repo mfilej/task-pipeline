@@ -1,6 +1,10 @@
 defmodule TaskPipelineWeb.TaskControllerTest do
   use TaskPipelineWeb.ConnCase
 
+  alias TaskPipeline.Processing
+  alias TaskPipeline.Runtime.Metrics
+  alias TaskPipeline.Runtime.Summary
+  alias TaskPipeline.Processing.Result
   alias TaskPipeline.Processing.Task
   alias TaskPipeline.Repo
 
@@ -47,15 +51,22 @@ defmodule TaskPipelineWeb.TaskControllerTest do
   end
 
   describe "summary" do
-    test "returns zero counts when no tasks exist", %{conn: conn} do
-      conn = get(conn, ~p"/api/tasks/summary")
+    setup do
+      start_supervised!(Summary)
+      _ = :sys.get_state(Summary)
+      :ok
+    end
 
-      assert json_response(conn, 200)["data"] == %{
-               "queued" => 0,
-               "processing" => 0,
-               "completed" => 0,
-               "failed" => 0
-             }
+    test "returns zero counts when no tasks exist", %{conn: conn} do
+      assert {:ok, %{queued: 0, processing: 0, completed: 0, failed: 0}} = Summary.rebuild()
+
+      conn = get(conn, ~p"/api/tasks/summary")
+      body = json_response(conn, 200)["data"]
+
+      assert body["queued"] == 0
+      assert body["processing"] == 0
+      assert body["completed"] == 0
+      assert body["failed"] == 0
     end
 
     test "returns counts for each status", %{conn: conn} do
@@ -63,15 +74,63 @@ defmodule TaskPipelineWeb.TaskControllerTest do
       insert_task!(status: :queued)
       insert_task!(status: :completed)
       insert_task!(status: :failed)
+      assert {:ok, %{queued: 2, processing: 0, completed: 1, failed: 1}} = Summary.rebuild()
 
       conn = get(conn, ~p"/api/tasks/summary")
+      body = json_response(conn, 200)["data"]
 
-      assert json_response(conn, 200)["data"] == %{
-               "queued" => 2,
-               "processing" => 0,
-               "completed" => 1,
-               "failed" => 1
-             }
+      assert body["queued"] == 2
+      assert body["processing"] == 0
+      assert body["completed"] == 1
+      assert body["failed"] == 1
+    end
+  end
+
+  describe "metrics" do
+    setup do
+      start_supervised!(Metrics)
+      _ = :sys.get_state(Metrics)
+      :ok
+    end
+
+    test "returns zeroed throughput metrics and current queue depth before lifecycle events",
+         %{conn: conn} do
+      insert_task!(status: :queued)
+      insert_task!(status: :processing)
+
+      conn = get(conn, ~p"/api/tasks/metrics")
+      body = json_response(conn, 200)["data"]
+
+      assert body["completed_count"] == 0
+      assert body["failed_count"] == 0
+      assert body["retried_count"] == 0
+      assert body["average_processing_duration_ms"] == 0
+      assert body["terminal_failure_rate"] == 0.0
+    end
+
+    test "returns evented metrics when the metrics process is running", %{conn: conn} do
+      active_task = insert_task!(status: :processing)
+      completed_task = insert_task!(status: :processing)
+
+      assert {:ok, %{task: %Task{status: :completed}}} =
+               Processing.task_completed(
+                 completed_task,
+                 %Result{duration: 150, message: "done"},
+                 %{attempt: 1}
+               )
+
+      _ = :sys.get_state(Metrics)
+
+      conn = get(conn, ~p"/api/tasks/metrics")
+      body = json_response(conn, 200)["data"]
+
+      assert body["completed_count"] == 1
+      assert body["failed_count"] == 0
+      assert body["retried_count"] == 0
+      assert body["average_processing_duration_ms"] == 150
+      assert body["terminal_failure_rate"] == 0.0
+
+      assert Repo.get!(Task, active_task.id).status == :processing
     end
   end
 

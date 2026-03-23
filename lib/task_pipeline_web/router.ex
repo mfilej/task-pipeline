@@ -10,6 +10,7 @@ defmodule TaskPipelineWeb.Router do
   scope "/api", TaskPipelineWeb do
     pipe_through :api
 
+    get "/tasks/metrics", TaskController, :metrics
     get "/tasks/summary", TaskController, :summary
     get "/tasks", TaskController, :index
     post "/tasks", TaskController, :create
