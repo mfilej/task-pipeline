@@ -10,7 +10,8 @@ defmodule Mix.Tasks.TaskPipeline.CreateViaApi do
     type: :string,
     priority: :string,
     payload: :string,
-    max_attempts: :integer
+    max_attempts: :integer,
+    n: :integer
   ]
 
   @impl Mix.Task
@@ -18,23 +19,28 @@ defmodule Mix.Tasks.TaskPipeline.CreateViaApi do
     Mix.Task.run("loadpaths")
     Application.ensure_all_started(:req)
 
-    {opts, _argv, invalid} = OptionParser.parse(args, strict: @switches)
+    {opts, _argv, invalid} = OptionParser.parse(args, strict: @switches, aliases: [n: :n])
 
     if invalid != [] do
       Mix.raise("Invalid options: #{inspect(invalid)}")
     end
 
-    payload = build_payload(opts)
+    n = Keyword.get(opts, :n, 1)
     url = default_url()
 
-    case Req.post(url, json: %{task: payload}) do
-      {:ok, %Req.Response{status: status, body: body}} ->
-        Mix.shell().info("POST #{url}")
-        Mix.shell().info("Status: #{status}")
-        Mix.shell().info(Jason.encode_to_iodata!(body, pretty: true) |> IO.iodata_to_binary())
+    for i <- 1..n do
+      payload = build_payload(opts)
 
-      {:error, exception} ->
-        Mix.raise("Request failed: #{Exception.message(exception)}")
+      case Req.post(url, json: %{task: payload}) do
+        {:ok, %Req.Response{status: status, body: body}} ->
+          if n > 1, do: Mix.shell().info("[#{i}/#{n}]")
+          Mix.shell().info("POST #{url}")
+          Mix.shell().info("Status: #{status}")
+          Mix.shell().info(Jason.encode_to_iodata!(body, pretty: true) |> IO.iodata_to_binary())
+
+        {:error, exception} ->
+          Mix.raise("Request failed: #{Exception.message(exception)}")
+      end
     end
   end
 
