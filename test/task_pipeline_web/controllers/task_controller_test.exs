@@ -46,6 +46,35 @@ defmodule TaskPipelineWeb.TaskControllerTest do
     })
   end
 
+  describe "summary" do
+    test "returns zero counts when no tasks exist", %{conn: conn} do
+      conn = get(conn, ~p"/api/tasks/summary")
+
+      assert json_response(conn, 200)["data"] == %{
+               "queued" => 0,
+               "processing" => 0,
+               "completed" => 0,
+               "failed" => 0
+             }
+    end
+
+    test "returns counts for each status", %{conn: conn} do
+      insert_task!(status: :queued)
+      insert_task!(status: :queued)
+      insert_task!(status: :completed)
+      insert_task!(status: :failed)
+
+      conn = get(conn, ~p"/api/tasks/summary")
+
+      assert json_response(conn, 200)["data"] == %{
+               "queued" => 2,
+               "processing" => 0,
+               "completed" => 1,
+               "failed" => 1
+             }
+    end
+  end
+
   describe "index tasks" do
     test "returns empty list when no tasks exist", %{conn: conn} do
       conn = get(conn, ~p"/api/tasks")

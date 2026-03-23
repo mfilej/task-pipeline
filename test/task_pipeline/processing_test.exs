@@ -8,6 +8,44 @@ defmodule TaskPipeline.ProcessingTest do
   alias TaskPipeline.Processing.Task
   alias TaskPipeline.Workers.TaskWorker
 
+  describe "tasks_summary/0" do
+    test "returns zero counts when no tasks exist" do
+      summary = Processing.tasks_summary()
+
+      assert summary == %{queued: 0, processing: 0, completed: 0, failed: 0}
+    end
+
+    test "returns counts grouped by status" do
+      Repo.insert!(%Task{
+        title: "a",
+        type: :import,
+        priority: :normal,
+        payload: %{},
+        status: :queued
+      })
+
+      Repo.insert!(%Task{
+        title: "b",
+        type: :import,
+        priority: :normal,
+        payload: %{},
+        status: :queued
+      })
+
+      Repo.insert!(%Task{
+        title: "c",
+        type: :import,
+        priority: :normal,
+        payload: %{},
+        status: :completed
+      })
+
+      summary = Processing.tasks_summary()
+
+      assert summary == %{queued: 2, processing: 0, completed: 1, failed: 0}
+    end
+  end
+
   describe "get_task!/1" do
     test "returns a task with preloaded runs ordered by attempt" do
       task =
@@ -29,6 +67,7 @@ defmodule TaskPipeline.ProcessingTest do
       assert run1.attempt == 1
       assert run2.attempt == 2
     end
+  end
 
   test "create_task/1 creates a queued task and enqueues its job" do
     attrs = %{

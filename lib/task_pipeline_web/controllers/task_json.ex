@@ -3,6 +3,10 @@ defmodule TaskPipelineWeb.TaskJSON do
 
   use TaskPipelineWeb, :verified_routes
 
+  def summary(%{summary: summary}) do
+    %{data: summary}
+  end
+
   def index(%{tasks: tasks, meta: meta}) do
     %{
       data: Enum.map(tasks, &task_data/1),

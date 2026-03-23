@@ -6,6 +6,11 @@ defmodule TaskPipelineWeb.TaskController do
 
   action_fallback TaskPipelineWeb.FallbackController
 
+  def summary(conn, _params) do
+    summary = Processing.tasks_summary()
+    render(conn, :summary, summary: summary)
+  end
+
   def index(conn, params) do
     # NOTE: This allows for far more than just the required filters and default
     # sorting. However, the exisitng database indexes only support the default

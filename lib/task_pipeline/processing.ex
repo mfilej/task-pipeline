@@ -8,6 +8,19 @@ defmodule TaskPipeline.Processing do
   alias TaskPipeline.Repo
   alias TaskPipeline.Workers.TaskWorker
 
+  def tasks_summary do
+    counts =
+      Task
+      |> group_by([t], t.status)
+      |> select([t], {t.status, count(t.id)})
+      |> Repo.all()
+      |> Map.new()
+
+    Task.list_statuses()
+    |> Map.from_keys(0)
+    |> Map.merge(counts)
+  end
+
   def list_tasks(params) do
     Flop.validate_and_run(Task, params, for: Task)
   end
